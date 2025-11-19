@@ -6,13 +6,10 @@ import asyncio
 import os
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
-# ←←← ТІЛЬКИ ЦІ ДВА РЯДКИ ТИ МІНЯЄШ ←←←
-TOKEN = "7542088468:AAEaKxMXuBg6QTQFpwWdqgMC2dZckuTtmZc"
-TEACHER_CHAT_ID = 562090436
-# ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-
-# Ключ беремо з змінних середовища — безпечно!
-GROQ_KEY = os.getenv("GROQ_KEY")   # тепер його немає в коді!
+# УСІ СЕКРЕТИ — у змінних середовища Render!
+TOKEN = os.getenv("BOT_TOKEN")
+TEACHER_CHAT_ID = int(os.getenv("TEACHER_CHAT_ID"))
+GROQ_KEY = os.getenv("GROQ_KEY")
 
 bot = telebot.TeleBot(TOKEN)
 user_data = {}
@@ -135,3 +132,4 @@ def send(m):
 
 print("Бот запущено – працює на Groq (ключ у змінних середовища)!")
 bot.infinity_polling()
+
