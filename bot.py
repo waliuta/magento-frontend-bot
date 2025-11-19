@@ -133,7 +133,17 @@ def send(m):
     del user_data[m.chat.id]
 
 print("Бот запущено – працює на Groq (ключ у змінних середовища)!")
+import os
+if os.getenv("RENDER"):
+    import threading
+    import http.server
+    import socketserver
+    def fake_server():
+        with socketserver.TCPServer(("0.0.0.0", 10000), lambda *args: None) as httpd:
+            httpd.serve_forever()
+    threading.Thread(target=fake_server, daemon=True).start()
 bot.infinity_polling()
+
 
 
 
