@@ -38,13 +38,14 @@ def numbers_kb():
     return kb
 
 async def generate_questions(theme, count):
-    prompt = """Ти — експерт Adobe Commerce Frontend Developer.
-Створи рівно {} унікальних питань УКРАЇНСЬКОЮ по темі «{}».
+    prompt = f"""Ти — експерт Adobe Commerce Frontend Developer.
+Створи рівно {count} унікальних питань УКРАЇНСЬКОЮ по темі «{theme}».
 Тільки офіційний гайд: https://developer.adobe.com/commerce/frontend-core/guide/
 
-Повертай ТІЛЬКИ чистий JSON-масив без ```json і без зайвого тексту:
-[{"question":"Яке призначення файлу theme.xml?","options":["A. Визначення стилів","B. Реєстрація теми та спадкування","C. Налаштування брейкпоінтів","D. Переклад тексту"],"correct":1,"explanation":"theme.xml використовується для реєстрації теми та вказівки батьківської теми через <parent>."}]
-""".format(count, theme)
+Повертай ТІЛЬКИ чистий JSON-масив без ```json і без зайвого тексту.
+Приклад структури (не копіюй його, просто дотримуйся формату):
+[{{"question":"Питання тут","options":["A","B","C","D"],"correct":1,"explanation":"Пояснення тут"}}]
+""".strip()
     
     try:
         async with httpx.AsyncClient(timeout=30) as client:
@@ -60,7 +61,7 @@ async def generate_questions(theme, count):
             )
             r.raise_for_status()
             text = r.json()["choices"][0]["message"]["content"]
-            text = text.strip().removeprefix("```json").removesuffix("```").strip()
+            text = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
             return json.loads(text)
     except Exception as e:
         print("Groq error:", e)
@@ -133,5 +134,6 @@ def send(m):
 
 print("Бот запущено – працює на Groq (ключ у змінних середовища)!")
 bot.infinity_polling()
+
 
 
