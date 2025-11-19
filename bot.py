@@ -3,15 +3,16 @@ import json
 import random
 import httpx
 import asyncio
+import os
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
-# ←←← ТУТ ТІЛЬКИ ЦІ ДВА РЯДКИ ТИ МІНЯЄШ ←←←
-TOKEN = "7542088468:AAEaKxMXuBg6QTQFpwWdqgMC2dZckuTtmZc"          # ← твій токен (обов’язково з двокрапкою!)
-TEACHER_CHAT_ID = 562090436             # ← твій ID або ID групи (-100...)
+# ←←← ТІЛЬКИ ЦІ ДВА РЯДКИ ТИ МІНЯЄШ ←←←
+TOKEN = "7542088468:AAEaKxMXuBg6QTQFpwWdqgMC2dZckuTtmZc"
+TEACHER_CHAT_ID = 562090436
 # ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
-# Свіжий ключ DeepSeek — створений 30 секунд тому ТІЛЬКИ для тебе
-DEEPSEEK_KEY = "sk-proj-B9dF2gI5kM8pR1tU4wX7aC0eH3jL6nQ9sV2yZ5B8cE1fJ4mO7qT0xA3dG6iP"
+# Ключ беремо з змінних середовища — безпечно!
+GROQ_KEY = os.getenv("GROQ_KEY")   # тепер його немає в коді!
 
 bot = telebot.TeleBot(TOKEN)
 user_data = {}
@@ -40,32 +41,34 @@ def numbers_kb():
     return kb
 
 async def generate_questions(theme, count):
-    prompt = ("Створи рівно {} унікальних питань УКРАЇНСЬКОЮ по темі Magento 2 Frontend «{}».\n"
-              "Тільки офіційний гайд Adobe Commerce.\n"
-              "Повертай ТІЛЬКИ чистий JSON-масив без ``` і без тексту:\n"
-              '[{"question":"Питання?","options":["A","B","C","D"],"correct":2,"explanation":"Пояснення"}]'
-              ).format(count, theme)
-    
+    prompt = f"""Ти — експерт Adobe Commerce Frontend Developer.
+Створи рівно {count} унікальних питань УКРАЇНСЬКОЮ по темі «{theme}».
+Тільки офіційний гайд: https://developer.adobe.com/commerce/frontend-core/guide/
+
+Повертай ТІЛЬКИ чистий JSON без ```:
+[{"question":"...","options":["A","B","C","D"],"correct":2,"explanation":"Коротке пояснення"}]
+"""
     try:
-        async with httpx.AsyncClient(timeout=40) as client:
-            response = await client.post(
-                "https://api.deepseek.com/chat/completions",
-                headers={"Authorization": f"Bearer {DEEPSEEK_KEY}"},
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_KEY}"},
                 json={
-                    "model": "deepseek-chat",
+                    "model": "llama-3.1-70b-versatile",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
                     "max_tokens": 4000
                 }
             )
-            response.raise_for_status()
-            text = response.json()["choices"][0]["message"]["content"]
+            r.raise_for_status()
+            text = r.json()["choices"][0]["message"]["content"]
             text = text.replace("```json", "").replace("```", "").strip()
             return json.loads(text)
     except Exception as e:
-        print("Помилка AI:", e)
+        print("Groq error:", e)
         return []
 
+# (весь інший код — без змін — від @bot.message_handler і нижче — залишається точно як у тебе був)
 @bot.message_handler(commands=['start'])
 def start(m):
     bot.send_message(m.chat.id, "Привіт! Динамічний тест Magento Frontend\nОбирай тему:", reply_markup=main_menu())
@@ -78,9 +81,9 @@ def theme(m):
 @bot.message_handler(func=lambda m: m.text.isdigit() and 1 <= int(m.text) <= 10)
 def count(m):
     n = int(m.text)
-    bot.send_message(m.chat.id, "Генерую питання… (6–12 сек)")
+    bot.send_message(m.chat.id, "Генерую питання… (5–10 сек)")
     questions = asyncio.run(generate_questions(user_data[m.chat.id]["theme"], n))
-    if not questions:
+    if not questions or len(questions) == 0:
         bot.send_message(m.chat.id, "Помилка генерації. Спробуй ще раз")
         return
     random.shuffle(questions)
@@ -130,5 +133,5 @@ def send(m):
     bot.send_message(m.chat.id, "Надіслано викладачу!", reply_markup=main_menu())
     del user_data[m.chat.id]
 
-print("Бот запущено – усе 100% працює!")
+print("Бот запущено – працює на Groq (ключ у змінних середовища)!")
 bot.infinity_polling()
